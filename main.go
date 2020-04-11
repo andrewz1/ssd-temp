@@ -167,13 +167,13 @@ func setFanModePwm(pwm int) (err error) {
 
 func main() {
 	var (
-		err    error
-		gpuSet bool
-		ssdSet bool
+		err      error
+		nameData []byte
+		gpuSet   bool
+		ssdSet   bool
 	)
 	paths, _ := filepath.Glob(sysPath)
 	for _, p := range paths {
-		var nameData []byte
 		if nameData, err = ioutil.ReadFile(p + namePath); err != nil {
 			continue
 		}

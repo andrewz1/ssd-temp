@@ -1,0 +1,11 @@
+[Unit]
+Description=ssd-temp
+
+[Service]
+Type=simple
+ExecStart=-/opt/ssd-temp
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
