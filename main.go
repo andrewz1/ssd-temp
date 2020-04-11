@@ -2,12 +2,12 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -40,53 +40,53 @@ var (
 	pwmLast int
 )
 
-func parseInt(buf []byte) (rv int, err error) {
-loop:
-	for i := range buf {
-		switch {
-		case buf[i] >= '0' && buf[i] <= '9':
-		case buf[i] == '-':
-		default:
-			buf = buf[:i]
-			break loop
-		}
+func readInt(path string) (rv int, err error) {
+	var f *os.File
+	if f, err = os.Open(path); err != nil {
+		return
 	}
-	var rv64 int64
-	rv64, err = strconv.ParseInt(string(buf), 10, 32)
-	rv = int(rv64)
+	defer f.Close()
+	var t, n int
+	if n, err = fmt.Fscanf(f, "%d", &t); err != nil {
+		return
+	}
+	if n != 1 {
+		err = errors.New("invalid file content")
+		return
+	}
+	rv = t
+	return
+}
+
+func writeInt(path string, v int) (err error) {
+	var f *os.File
+	if f, err = os.OpenFile(path, os.O_WRONLY, 0644); err != nil {
+		return
+	}
+	defer f.Close()
+	_, err = fmt.Fprintf(f, "%d", v)
 	return
 }
 
 func setFanMode(mode int) (old int, err error) {
 	path := gpuPath + gpuFanMode
-	var rbuf []byte
-	if rbuf, err = ioutil.ReadFile(path); err != nil {
-		return
-	}
-	if old, err = parseInt(rbuf); err != nil {
+	if old, err = readInt(path); err != nil {
 		return
 	}
 	if old == mode {
 		return
 	}
-	err = ioutil.WriteFile(path, []byte(fmt.Sprint(mode)), 0644)
+	err = writeInt(path, mode)
 	return
 }
 
 func getPwmRange() (err error) {
 	path := gpuPath + gpuFanPwmMin
-	var rbuf []byte
-	if rbuf, err = ioutil.ReadFile(path); err != nil {
-		return
-	}
-	if pwmMin, err = parseInt(rbuf); err != nil {
+	if pwmMin, err = readInt(path); err != nil {
 		return
 	}
 	path = gpuPath + gpuFanPwmMax
-	if rbuf, err = ioutil.ReadFile(path); err != nil {
-		return
-	}
-	if pwmMax, err = parseInt(rbuf); err != nil {
+	if pwmMax, err = readInt(path); err != nil {
 		return
 	}
 	return
@@ -94,27 +94,21 @@ func getPwmRange() (err error) {
 
 func setFanPwm(pwm int) (old int, err error) {
 	path := gpuPath + gpuFanPwm
-	var rbuf []byte
-	if rbuf, err = ioutil.ReadFile(path); err != nil {
-		return
-	}
-	if old, err = parseInt(rbuf); err != nil {
+	if old, err = readInt(path); err != nil {
 		return
 	}
 	if old == pwm {
 		return
 	}
-	err = ioutil.WriteFile(path, []byte(fmt.Sprint(pwm)), 0644)
+	err = writeInt(path, pwm)
 	return
 }
 
 func getSsdTemp() (rv int, err error) {
 	path := gpuPath + ssdTemp
-	var rbuf []byte
-	if rbuf, err = ioutil.ReadFile(path); err != nil {
+	if rv, err = readInt(path); err != nil {
 		return
 	}
-	rv, err = parseInt(rbuf)
 	return
 }
 
