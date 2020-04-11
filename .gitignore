@@ -1,0 +1,11 @@
+.idea/
+.vscode/
+vendor/
+
+go.sum
+Gopkg.lock
+
+.gitlab-ci.yml
+Dockerfile
+
+ssd-temp
