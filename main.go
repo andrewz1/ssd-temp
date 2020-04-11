@@ -68,14 +68,14 @@ func writeInt(path string, v int) (err error) {
 	return
 }
 
-func setFanMode(mode int) (old int, err error) {
+func getFanMode() (mode int, err error) {
 	path := gpuPath + gpuFanMode
-	if old, err = readInt(path); err != nil {
-		return
-	}
-	if old == mode {
-		return
-	}
+	mode, err = readInt(path)
+	return
+}
+
+func setFanMode(mode int) (err error) {
+	path := gpuPath + gpuFanMode
 	err = writeInt(path, mode)
 	return
 }
@@ -92,14 +92,8 @@ func getPwmRange() (err error) {
 	return
 }
 
-func setFanPwm(pwm int) (old int, err error) {
+func setFanPwm(pwm int) (err error) {
 	path := gpuPath + gpuFanPwm
-	if old, err = readInt(path); err != nil {
-		return
-	}
-	if old == pwm {
-		return
-	}
 	err = writeInt(path, pwm)
 	return
 }
@@ -198,12 +192,16 @@ func main() {
 		os.Exit(1)
 	}
 	var modeOld int
-	if modeOld, err = setFanMode(1); err != nil {
+	if modeOld, err = getFanMode(); err != nil {
+		fmt.Fprintln(os.Stderr, "can't get FAN mode:", err)
+		os.Exit(1)
+	}
+	if err = setFanMode(1); err != nil {
 		fmt.Fprintln(os.Stderr, "can't set FAN mode:", err)
 		os.Exit(1)
 	}
 	pwmLast = calcFanPwm()
-	if _, err = setFanPwm(pwmLast); err != nil {
+	if err = setFanPwm(pwmLast); err != nil {
 		fmt.Fprintln(os.Stderr, "can't set FAN PWM:", err)
 		os.Exit(1)
 	}
@@ -228,7 +226,6 @@ func worker(done chan struct{}, wg *sync.WaitGroup) {
 	var (
 		err    error
 		newPwm int
-		oldPwm int
 	)
 	defer wg.Done()
 	ticker := time.NewTicker(checkInt)
@@ -239,16 +236,12 @@ func worker(done chan struct{}, wg *sync.WaitGroup) {
 			return
 		case <-ticker.C:
 			newPwm = calcFanPwmWithDiff()
-			if _, err = setFanMode(1); err != nil {
+			if err = setFanMode(1); err != nil {
 				fmt.Fprintln(os.Stderr, "setFanMode:", err)
 			} else {
-				_ = oldPwm
-				if oldPwm, err = setFanPwm(newPwm); err != nil {
+				if err = setFanPwm(newPwm); err != nil {
 					fmt.Fprintln(os.Stderr, "setFanPwm:", err)
 				}
-				// else {
-				// 	fmt.Println("newPwm:", newPwm, "oldPwm:", oldPwm)
-				// }
 			}
 		}
 	}
