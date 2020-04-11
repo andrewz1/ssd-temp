@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+[ -r .env ] && source .env
 go fmt ./...
 git add -A
 git commit -am cleanup
