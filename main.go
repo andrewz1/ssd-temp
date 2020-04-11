@@ -153,6 +153,18 @@ func calcFanPwmWithDiff() (rv int) {
 	return
 }
 
+func setFanModePwm(pwm int) (err error) {
+	if err = setFanMode(1); err != nil {
+		fmt.Fprintln(os.Stderr, "can't set FAN mode:", err)
+		return
+	}
+	if err = setFanPwm(pwm); err != nil {
+		fmt.Fprintln(os.Stderr, "can't set FAN PWM:", err)
+		return
+	}
+	return
+}
+
 func main() {
 	var (
 		err    error
@@ -196,13 +208,8 @@ func main() {
 		fmt.Fprintln(os.Stderr, "can't get FAN mode:", err)
 		os.Exit(1)
 	}
-	if err = setFanMode(1); err != nil {
-		fmt.Fprintln(os.Stderr, "can't set FAN mode:", err)
-		os.Exit(1)
-	}
 	pwmLast = calcFanPwm()
-	if err = setFanPwm(pwmLast); err != nil {
-		fmt.Fprintln(os.Stderr, "can't set FAN PWM:", err)
+	if err = setFanModePwm(pwmLast); err != nil {
 		os.Exit(1)
 	}
 	sc := make(chan os.Signal, 1)
@@ -223,10 +230,6 @@ func main() {
 }
 
 func worker(done chan struct{}, wg *sync.WaitGroup) {
-	var (
-		err    error
-		newPwm int
-	)
 	defer wg.Done()
 	ticker := time.NewTicker(checkInt)
 	defer ticker.Stop()
@@ -235,14 +238,7 @@ func worker(done chan struct{}, wg *sync.WaitGroup) {
 		case <-done:
 			return
 		case <-ticker.C:
-			newPwm = calcFanPwmWithDiff()
-			if err = setFanMode(1); err != nil {
-				fmt.Fprintln(os.Stderr, "setFanMode:", err)
-			} else {
-				if err = setFanPwm(newPwm); err != nil {
-					fmt.Fprintln(os.Stderr, "setFanPwm:", err)
-				}
-			}
+			setFanModePwm(calcFanPwmWithDiff())
 		}
 	}
 }
