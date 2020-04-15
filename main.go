@@ -28,7 +28,7 @@ const (
 
 	ssdName    = "nvme"
 	ssdTemp    = "/temp1_input"
-	ssdTempMin = 32000
+	ssdTempMin = 35000
 	ssdTempMax = 55000
 )
 
